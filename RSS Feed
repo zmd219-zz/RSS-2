@@ -1,0 +1,145 @@
+require 'rss'
+require 'open-uri'
+
+class Object
+  def in(ary)
+    ary.include?(self)
+  end
+end
+class String
+  def alpha?
+    !!match(/^[[:alnum:]]+$/)
+  end
+end
+
+def find(string,item)
+  i = 0
+  string.each_char do |letter|
+    if letter == item
+      return i
+    end
+    i+=1
+  end
+end
+def spaced_out(string)
+  out = ''
+  string.each_char do |letter|
+    if letter.alpha? or letter == " "
+      out += letter
+    else
+      out += ' '+letter+' '
+    end
+
+  end
+  return out
+end
+def broken(string)
+  return spaced_out(string).split(' ')
+end
+def analyzed(string)
+  total = 0
+  in_text = []
+  broked = broken(string)
+  broked.each do |word|
+    if word.alpha?
+      in_text.push(word)
+    end
+  end
+  wordsanalyzed = in_text.length
+  in_text.each do |word|
+    if word.in $words
+      total += $words[word][2]
+    else
+      wordsanalyzed -= 1
+    end
+  end
+    return format((total/wordsanalyzed).to_s,'.2f')
+
+end
+def line_break(string)
+  out = ''
+  count = 1
+  string.each_char do |letter|
+    out += letter
+    if letter == ' '
+      count+=1
+    end
+    if count % 11 == 0
+      out += "\n"
+      count += 1
+    end
+  end
+  return out
+end
+def print_page(number)
+  puts "\n"+analyzed($keys[number])+"\n"+line_break($keys[number])
+  puts
+  puts analyzed($data[$keys[number]]) + " --\t"+line_break($data[$keys[number]])
+  puts '-------------------------------------'
+  puts
+  puts('Words Analyzed: ')
+  brok = broken($keys[number])
+  brok2 = broken($data[$keys[number]])
+  brok.each do |word|
+    if word.in $words and word.alpha?
+      puts word.upcase + "\t\t"+format($words[word][2].to_s, '.2f')
+    end
+  end
+  puts
+  puts
+  brok2.each do |word|
+    if word.in $words and word.alpha?
+      puts word.upcase + "\t\t"+format($words[word][2].to_s, '.2f')
+    end
+  end
+end
+
+$words = {}
+file2 = open('sentiment2.txt','r')
+cache = file2.readlines()
+for i in (0..(cache.length)).step(3)
+  word = cache[i].to_s.chomp
+  score = cache[i+1].to_f
+  count = cache[i+2].to_f
+  if count != 0
+    rating = 4*score/count
+    $words[word]= [score, count, rating]
+  end
+end
+
+$data = {}
+url = 'http://feeds.reuters.com/reuters/businessNews?format=xml'
+open(url) do |rss|
+  feed = RSS::Parser.parse(rss)
+  feed.items.each do |item|
+    stop = find(item.description,'<')
+    $data[item.title] = item.description[0..stop-1]
+  end
+end
+
+$keys = []
+$data.each do |title|
+  $keys += title
+end
+
+
+puts "\nWelcome to Reuters RSS Feed Sentiment Analysis!\n\n"
+page = 0
+while true
+  print_page(page)
+  puts '( < , > ) or page number:'
+  opt = gets
+  opt = opt.chomp
+  if opt == '>'
+    page += 1
+    if page>$keys.length
+      page = 0
+    end
+  elsif opt == '<'
+    page -= 1
+    if page<0
+      page = $keys.length -1
+    end
+  end
+  puts "\n--------------------------------------------------\n\n"
+end

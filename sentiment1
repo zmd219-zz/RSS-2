@@ -1,0 +1,89 @@
+=begin
+class Word
+  def initialize (total, count)
+    @total = total
+    @count = count
+  end
+  def total
+    @total
+  end
+  def count
+    @count
+  end
+
+  #average
+  def average
+    return @total/@count
+  end
+
+  def increment_total(increment)
+    @total += increment
+  end
+  def increment_count
+    @count += 1
+  end
+end
+=end
+
+class Object
+  def in(ary)
+    ary.include?(self)
+  end
+end
+class String
+  def alpha?
+    !!match(/^[[:alnum:]]+$/)
+  end
+end
+
+def spaced_out(string)
+  out = ''
+  string.each_char do |letter|
+    if letter.alpha? or letter == " "
+      out += letter
+    else
+      out += ' '+letter+' '
+    end
+
+  end
+  return out
+end
+
+
+$all_words = {}
+
+file_names = ['amazon_cells','imdb','yelp']
+
+def analyze(source)
+  filename = source + '_labelled.txt'
+  data = open(filename,'r')
+  text = data.readlines
+  text.each do |line|
+    score = line[-2].to_i
+    text = spaced_out(line.chomp('\t').downcase).split(' ')
+    text.each do |item|
+      if item.in $all_words
+        $all_words[item][0] += (score)
+        $all_words[item][1]+=1
+      elsif not item.in $all_words
+        $all_words[item] = [score, 1]
+      end
+    end
+  end
+end
+
+def output(dict, file)
+  dict.each do |word|
+    file.puts word
+  end
+end
+
+
+file_names.each do |file|
+  analyze(file)
+end
+
+out = open('sentiment2.txt','w')
+output($all_words, out)
+
+out.close
